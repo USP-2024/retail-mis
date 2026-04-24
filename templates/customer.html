@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer {{ customer_id }} — RetailMIS</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">📊</div>
+      <div><div class="logo-text">RetailMIS</div><div class="logo-sub">Intelligence Hub</div></div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <a href="/dashboard" class="nav-item"><span class="nav-icon">📈</span><span>Dashboard</span></a>
+    <a href="/report"    class="nav-item"><span class="nav-icon">📄</span><span>Reports</span></a>
+    {% if role == 'admin' %}
+    <a href="/upload"      class="nav-item"><span class="nav-icon">⬆</span><span>Upload Data</span></a>
+    <a href="/api/refresh" class="nav-item"><span class="nav-icon">↺</span><span>Refresh Cache</span></a>
+    {% endif %}
+  </div>
+  <div class="sidebar-footer">
+    <span class="status-dot"></span> {{ username }} ({{ role }})<br>
+    <a href="/logout" style="color:var(--pastel-rose);font-size:11px;text-decoration:none;">⎋ Logout</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title">Customer <span>#{{ customer_id }}</span></div>
+      <div class="page-subtitle">Full purchase history & behaviour analysis</div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard#customers" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+    <div class="kpi-card fade-up">
+      <span class="kpi-icon">💷</span>
+      <div class="kpi-value mono" style="color:var(--pastel-mint);">£{{ "{:,.2f}".format(total_revenue) }}</div>
+      <div class="kpi-label">Total Spend</div>
+    </div>
+    <div class="kpi-card fade-up">
+      <span class="kpi-icon">🛒</span>
+      <div class="kpi-value mono" style="color:var(--pastel-sky);">{{ total_orders }}</div>
+      <div class="kpi-label">Total Orders</div>
+    </div>
+    <div class="kpi-card fade-up">
+      <span class="kpi-icon">📅</span>
+      <div class="kpi-value mono" style="font-size:14px;color:var(--pastel-lavender);">{{ first_purchase }}</div>
+      <div class="kpi-label">First Purchase</div>
+    </div>
+    <div class="kpi-card fade-up">
+      <span class="kpi-icon">🕐</span>
+      <div class="kpi-value mono" style="font-size:14px;color:var(--pastel-peach);">{{ last_purchase }}</div>
+      <div class="kpi-label">Last Purchase</div>
+    </div>
+  </div>
+
+  <!-- RFM + CHURN + RECOMMENDATION -->
+  <div class="grid-2" style="margin-bottom:20px;">
+
+    <!-- RFM Profile -->
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">🎯 RFM Profile</span>
+        {% if rfm.Segment %}
+        <span class="card-badge
+          {% if rfm.Segment == 'Champions' %}amber
+          {% elif rfm.Segment == 'Loyal Customers' %}mint
+          {% elif rfm.Segment == 'At Risk' %}amber
+          {% elif rfm.Segment == 'Lost' %}red
+          {% else %}lavender{% endif %}">
+          {{ rfm.Segment }}
+        </span>
+        {% endif %}
+      </div>
+
+      {% if rfm %}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+        {% for label, key, color in [('Recency (days)', 'Recency', 'pastel-peach'), ('Frequency', 'Frequency', 'pastel-sky'), ('Monetary (£)', 'Monetary', 'pastel-mint')] %}
+        <div style="background:var(--bg-main);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;">
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">{{ label }}</div>
+          <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--{{ color }});">
+            {% if key == 'Monetary' %}£{{ "{:,.0f}".format(rfm[key]) }}
+            {% else %}{{ rfm[key]|int }}{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        {% for label, key in [('R Score','R_Score'),('F Score','F_Score'),('M Score','M_Score')] %}
+        <div style="background:var(--bg-main);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">{{ label }}</div>
+          <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--pastel-lavender);">
+            {{ rfm.get(key, '—') }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--text-muted);font-size:13px;">RFM data not available.</p>
+      {% endif %}
+    </div>
+
+    <!-- Churn + Recommendation -->
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">⚠️ Churn Risk & Action</span>
+        {% if churn %}
+        <span class="card-badge {{ 'red' if churn.churn_risk == 'High' else ('amber' if churn.churn_risk == 'Medium' else 'green') }}">
+          {{ churn.churn_risk }} Risk
+        </span>
+        {% endif %}
+      </div>
+
+      {% if churn %}
+      <!-- Churn probability bar -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;">Churn Probability</span>
+          <span style="font-size:16px;font-weight:700;font-family:var(--mono);
+            color:{{ 'var(--pastel-rose)' if churn.churn_risk == 'High' else ('var(--warn)' if churn.churn_risk == 'Medium' else 'var(--pastel-sage)') }};">
+            {{ churn.churn_prob }}%
+          </span>
+        </div>
+        <div style="height:8px;background:var(--bg-main);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:{{ churn.churn_prob }}%;border-radius:4px;
+            background:{{ 'linear-gradient(90deg,var(--pastel-rose),#ff6b6b)' if churn.churn_risk == 'High' else ('linear-gradient(90deg,var(--warn),#ffb347)' if churn.churn_risk == 'Medium' else 'linear-gradient(90deg,var(--pastel-sage),var(--pastel-mint))') }};
+            transition:width 1s ease;"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Recommendation -->
+      <div style="background:var(--mint-dim);border:1px solid rgba(168,240,222,0.15);border-radius:12px;padding:16px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--pastel-mint);font-weight:700;margin-bottom:8px;">
+          💡 Recommended Action
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6;">{{ recommendation }}</div>
+      </div>
+
+      <!-- Top products for this customer -->
+      {% if top_products %}
+      <div style="margin-top:18px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Top Products Purchased</div>
+        {% for p in top_products %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;
+             border-bottom:1px solid var(--border);">
+          <span style="font-size:12px;color:var(--text-soft);">{{ p.Description[:40] }}</span>
+          <span style="font-size:12px;font-family:var(--mono);color:var(--pastel-mint);">£{{ "{:,.0f}".format(p.Revenue) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ORDER HISTORY -->
+  <div class="card fade-up">
+    <div class="card-header">
+      <span class="card-title">📋 Order History</span>
+      <span class="card-badge mint">Last {{ orders|length }} Orders</span>
+    </div>
+    {% if orders %}
+    <table class="mis-table">
+      <thead>
+        <tr><th>Invoice</th><th>Date</th><th>Items</th><th>Products</th><th>Revenue</th></tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td class="mono" style="color:var(--pastel-lavender);">{{ o.InvoiceNo }}</td>
+          <td style="color:var(--text-soft);">{{ o.Date }}</td>
+          <td class="mono">{{ o.Items }}</td>
+          <td class="mono muted">{{ o.Products }}</td>
+          <td class="mono" style="color:var(--pastel-mint);">£{{ "{:,.2f}".format(o.Revenue) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--text-muted);font-size:13px;">No orders found for this customer.</p>
+    {% endif %}
+  </div>
+
+  <div style="margin-top:20px;margin-bottom:40px;">
+    <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+  </div>
+
+</main>
+</body>
+</html>

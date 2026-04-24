@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports — RetailMIS</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">📊</div>
+      <div>
+        <div class="logo-text">RetailMIS</div>
+        <div class="logo-sub">Intelligence Hub</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <a href="/" class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></a>
+    <a href="/dashboard" class="nav-item"><span class="nav-icon">📈</span><span>Dashboard</span></a>
+    <a href="/report" class="nav-item active"><span class="nav-icon">📄</span><span>Reports</span></a>
+  </div>
+  <div class="sidebar-footer">
+    RetailMIS v2.0<br><span class="accent">●</span> System Online
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title">Detailed <span>Reports</span></div>
+      <div class="page-subtitle">Full data tables, RFM analysis & downloadable exports</div>
+    </div>
+    <div class="topbar-actions">
+      {% if report_paths.excel_path %}
+      <a href="/{{ report_paths.excel_path }}" download class="btn btn-primary">
+        ⬇ Download Excel Report
+      </a>
+      {% endif %}
+      <a href="/{{ report_paths.csv_path }}" download class="btn btn-secondary">⬇ Products CSV</a>
+      <a href="/{{ report_paths.rfm_path }}" download class="btn btn-outline">⬇ RFM CSV</a>
+    </div>
+  </div>
+
+  <!-- SUMMARY BANNER -->
+  <div class="card fade-up" style="background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(124,92,252,0.08)); border-color: rgba(0,212,170,0.2); margin-bottom: 28px;">
+    <div style="display:flex; gap:40px; flex-wrap:wrap;">
+      {% set summary = [
+        ("💷", "Total Revenue",   "£" ~ "{:,.2f}".format(insights.total_revenue)),
+        ("🛒", "Total Orders",    "{:,}".format(insights.total_orders)),
+        ("👤", "Customers",       "{:,}".format(insights.total_customers)),
+        ("📦", "Products",        "{:,}".format(insights.total_products)),
+        ("📊", "Growth Trend",    insights.trend_label),
+        ("💡", "Avg Order",       "£" ~ "{:.2f}".format(insights.avg_order_value)),
+      ] %}
+      {% for icon, label, val in summary %}
+      <div>
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px;">{{ icon }} {{ label }}</div>
+        <div style="font-size:20px; font-weight:700; font-family:var(--mono); color:var(--accent); margin-top:4px;">{{ val }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TOP PRODUCTS -->
+  <div class="report-section">
+    <div class="section-header">
+      <div class="section-title">📦 Top Products by Revenue</div>
+      <a href="/{{ report_paths.csv_path }}" download class="btn btn-outline" style="font-size:11px;padding:5px 12px;">⬇ Export</a>
+    </div>
+    <div class="card fade-up">
+      <table class="mis-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product Description</th>
+            <th>Total Revenue</th>
+            <th>Units Sold</th>
+            <th>Orders</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set max_r = top_products[0].Revenue if top_products else 1 %}
+          {% for p in top_products %}
+          <tr>
+            <td>
+              <span class="rank-badge {{ 'gold' if loop.index == 1 else ('silver' if loop.index == 2 else ('bronze' if loop.index == 3 else 'rest')) }}">
+                {{ loop.index }}
+              </span>
+            </td>
+            <td>{{ p.Description }}</td>
+            <td>
+              <div class="revenue-bar-wrap">
+                <span class="mono" style="font-size:13px; color:var(--accent);">£{{ "{:,.2f}".format(p.Revenue) }}</span>
+                <div class="revenue-bar" style="width:{{ (p.Revenue / max_r * 80)|round|int }}%;"></div>
+              </div>
+            </td>
+            <td class="mono">{{ "{:,}".format(p.UnitsSold|int) }}</td>
+            <td class="mono muted">{{ p.Orders }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TOP CUSTOMERS -->
+  <div class="report-section">
+    <div class="section-header">
+      <div class="section-title">👤 Top Customers</div>
+      <a href="/{{ report_paths.customer_path }}" download class="btn btn-outline" style="font-size:11px;padding:5px 12px;">⬇ Export</a>
+    </div>
+    <div class="card fade-up">
+      <table class="mis-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Customer ID</th>
+            <th>Total Revenue</th>
+            <th>Orders</th>
+            <th>Items Purchased</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set max_cr = top_customers[0].Revenue if top_customers else 1 %}
+          {% for c in top_customers %}
+          <tr>
+            <td>
+              <span class="rank-badge {{ 'gold' if loop.index == 1 else ('silver' if loop.index == 2 else ('bronze' if loop.index == 3 else 'rest')) }}">
+                {{ loop.index }}
+              </span>
+            </td>
+            <td class="mono accent">{{ c.CustomerID }}</td>
+            <td>
+              <div class="revenue-bar-wrap">
+                <span class="mono" style="font-size:13px; color:var(--accent2);">£{{ "{:,.2f}".format(c.Revenue) }}</span>
+                <div class="revenue-bar" style="width:{{ (c.Revenue / max_cr * 80)|round|int }}%; background: linear-gradient(90deg, #7c5cfc, #a78bfa);"></div>
+              </div>
+            </td>
+            <td class="mono">{{ c.Orders }}</td>
+            <td class="mono muted">{{ "{:,}".format(c.Items|int) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- COUNTRY PERFORMANCE -->
+  <div class="report-section">
+    <div class="section-header">
+      <div class="section-title">🌍 Country Performance</div>
+    </div>
+    <div class="card fade-up">
+      <table class="mis-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Country</th>
+            <th>Revenue</th>
+            <th>Customers</th>
+            <th>Orders</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set max_country = top_countries[0].Revenue if top_countries else 1 %}
+          {% for c in top_countries %}
+          <tr>
+            <td><span class="rank-badge {{ 'gold' if loop.index == 1 else ('silver' if loop.index == 2 else ('bronze' if loop.index == 3 else 'rest')) }}">{{ loop.index }}</span></td>
+            <td style="font-weight:600;">{{ c.Country }}</td>
+            <td>
+              <div class="revenue-bar-wrap">
+                <span class="mono" style="font-size:13px;">£{{ "{:,.2f}".format(c.Revenue) }}</span>
+                <div class="revenue-bar" style="width:{{ (c.Revenue / max_country * 70)|round|int }}%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+              </div>
+            </td>
+            <td class="mono">{{ c.Customers }}</td>
+            <td class="mono muted">{{ c.Orders }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- RFM ANALYSIS -->
+  <div class="report-section">
+    <div class="section-header">
+      <div class="section-title">🎯 RFM Customer Segmentation</div>
+      <a href="/{{ report_paths.rfm_path }}" download class="btn btn-outline" style="font-size:11px;padding:5px 12px;">⬇ Export</a>
+    </div>
+
+    <div class="grid-2 fade-up">
+      {% for seg in rfm_summary %}
+      <div class="card" style="padding: 20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div class="segment-chip" data-seg="{{ seg.Segment }}" style="background:transparent; border:none; text-align:left; padding:0;">
+            <div class="segment-name">{{ seg.Segment }}</div>
+            <div class="segment-count">{{ seg.Count }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px;">Avg Value</div>
+            <div style="font-size:18px; font-weight:700; font-family:var(--mono); color:var(--accent);">£{{ "%.0f"|format(seg.AvgMonetary) }}</div>
+          </div>
+        </div>
+        <div style="height:4px; border-radius:2px; background:var(--border);">
+          <div style="height:100%; border-radius:2px; background:linear-gradient(90deg, var(--accent), var(--accent2)); width:{{ [seg.Count * 5, 100]|min }}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="card fade-up mt-4" style="background: rgba(124,92,252,0.05); border-color: rgba(124,92,252,0.2);">
+      <div class="card-title" style="margin-bottom:12px;">📌 RFM Methodology</div>
+      <p style="font-size:13px; color:var(--text-soft); line-height:1.7;">
+        <strong style="color:var(--text);">Recency (R)</strong> — How recently a customer purchased. Lower days = higher score.<br>
+        <strong style="color:var(--text);">Frequency (F)</strong> — How many times they ordered. More orders = higher score.<br>
+        <strong style="color:var(--text);">Monetary (M)</strong> — Total spend. Higher value = higher score.<br><br>
+        Each dimension is scored 1–4 and summed. <strong style="color:var(--accent);">Champions</strong> (10–12) are your most engaged, 
+        high-spending, recent buyers. <strong style="color:var(--danger);">Lost</strong> (3–4) customers need urgent win-back efforts.
+      </p>
+    </div>
+  </div>
+
+  <!-- BACK BUTTON -->
+  <div style="margin-top:20px;">
+    <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+  </div>
+
+</main>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

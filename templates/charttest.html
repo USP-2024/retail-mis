@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chart Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: #060d1f; color: #edf0f7; font-family: sans-serif; padding: 20px; }
+    .box { background: #0f1c35; border: 1px solid rgba(120,160,255,0.15); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+    canvas { display: block; }
+    #log { background: #000; color: #0f0; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre; }
+  </style>
+</head>
+<body>
+  <h2 style="color:#a8f0de;">RetailMIS Chart Diagnostics</h2>
+
+  <div class="box">
+    <p id="log">Running diagnostics…</p>
+  </div>
+
+  <div class="box">
+    <p style="color:#9aa3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Revenue Trend Test</p>
+    <div style="height:250px;"><canvas id="testRev"></canvas></div>
+  </div>
+
+  <div class="box">
+    <p style="color:#9aa3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Bar Chart Test</p>
+    <div style="height:250px;"><canvas id="testBar"></canvas></div>
+  </div>
+
+  <div class="box">
+    <p style="color:#9aa3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Doughnut Test</p>
+    <div style="height:250px;"><canvas id="testDough"></canvas></div>
+  </div>
+
+  <script>
+    var log = document.getElementById('log');
+    function addLog(msg) { log.textContent += '\n' + msg; }
+
+    addLog('Chart.js version: ' + Chart.version);
+    addLog('Canvas support: ' + (!!document.createElement('canvas').getContext));
+
+    // Test 1: Line chart
+    try {
+      var el1 = document.getElementById('testRev');
+      var g = el1.getContext('2d').createLinearGradient(0,0,0,250);
+      g.addColorStop(0, 'rgba(168,240,222,0.3)');
+      g.addColorStop(1, 'rgba(168,240,222,0)');
+
+      new Chart(el1, {
+        type: 'line',
+        data: {
+          labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+          datasets: [
+            {
+              label: 'Actual',
+              data: [45000,52000,48000,61000,55000,70000,65000,72000,68000,80000,null,null],
+              borderColor: '#a8f0de',
+              backgroundColor: g,
+              borderWidth: 2.5,
+              pointRadius: 4,
+              tension: 0.35,
+              fill: true,
+              spanGaps: false,
+            },
+            {
+              label: 'Forecast',
+              data: [null,null,null,null,null,null,null,null,null,null,85000,90000],
+              borderColor: '#c9b8ff',
+              borderWidth: 2,
+              borderDash: [7,4],
+              pointRadius: 4,
+              tension: 0.35,
+              fill: false,
+              spanGaps: false,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true, labels: { color: '#9aa3b8' } } },
+          scales: {
+            x: { grid: { color: 'rgba(120,160,255,0.08)' }, ticks: { color: '#5a6380' } },
+            y: { grid: { color: 'rgba(120,160,255,0.08)' }, ticks: { color: '#5a6380' } }
+          }
+        }
+      });
+      addLog('✅ Line chart: OK');
+    } catch(e) { addLog('❌ Line chart FAILED: ' + e.message); }
+
+    // Test 2: Horizontal bar
+    try {
+      new Chart(document.getElementById('testBar'), {
+        type: 'bar',
+        data: {
+          labels: ['Product A','Product B','Product C','Product D','Product E'],
+          datasets: [{
+            data: [52000, 48000, 45000, 40000, 35000],
+            backgroundColor: ['#a8f0de','#c9b8ff','#ffc9a8','#a8d8f0','#ffb8c8'],
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(120,160,255,0.08)' }, ticks: { color: '#5a6380' } },
+            y: { grid: { display: false }, ticks: { color: '#9aa3b8' } }
+          }
+        }
+      });
+      addLog('✅ Bar chart: OK');
+    } catch(e) { addLog('❌ Bar chart FAILED: ' + e.message); }
+
+    // Test 3: Doughnut
+    try {
+      new Chart(document.getElementById('testDough'), {
+        type: 'doughnut',
+        data: {
+          labels: ['UK', 'France', 'Germany', 'Australia'],
+          datasets: [{
+            data: [463692, 40469, 28892, 24591],
+            backgroundColor: ['#a8f0de','#c9b8ff','#ffc9a8','#a8d8f0'],
+            borderWidth: 2,
+            borderColor: '#0f1c35',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: { display: true, position: 'right', labels: { color: '#9aa3b8' } }
+          }
+        }
+      });
+      addLog('✅ Doughnut chart: OK');
+    } catch(e) { addLog('❌ Doughnut FAILED: ' + e.message); }
+
+    addLog('\nAll tests complete. If charts above are visible, Chart.js works fine.');
+    addLog('If charts show but dashboard does not → issue is in data bridge or dashboard.js.');
+  </script>
+</body>
+</html>

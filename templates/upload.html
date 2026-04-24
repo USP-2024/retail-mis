@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Data — RetailMIS</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">📊</div>
+      <div><div class="logo-text">RetailMIS</div><div class="logo-sub">Intelligence Hub</div></div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <a href="/dashboard" class="nav-item"><span class="nav-icon">📈</span><span>Dashboard</span></a>
+    <a href="/report"    class="nav-item"><span class="nav-icon">📄</span><span>Reports</span></a>
+    <a href="/upload"    class="nav-item active"><span class="nav-icon">⬆</span><span>Upload Data</span></a>
+    <a href="/api/refresh" class="nav-item"><span class="nav-icon">↺</span><span>Refresh Cache</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <span class="status-dot"></span> {{ username }} ({{ role }})<br>
+    <a href="/logout" style="color:var(--pastel-rose);font-size:11px;text-decoration:none;">⎋ Logout</a>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Upload <span>Dataset</span></div>
+      <div class="page-subtitle">Replace the retail CSV with a new dataset</div>
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div style="padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:13px;font-weight:500;
+         {% if category == 'success' %}background:rgba(184,240,192,0.12);border:1px solid rgba(184,240,192,0.25);color:var(--pastel-sage);
+         {% elif category == 'danger' %}background:rgba(255,184,184,0.12);border:1px solid rgba(255,184,184,0.25);color:var(--pastel-rose);
+         {% else %}background:rgba(168,216,240,0.12);border:1px solid rgba(168,216,240,0.25);color:var(--pastel-sky);{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card fade-up" style="max-width:600px;">
+    <div class="card-header">
+      <span class="card-title">⬆ Upload CSV File</span>
+      <span class="card-badge mint">Admin Only</span>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.7;">
+      Upload a new retail transactions CSV. The file must contain these columns:<br>
+      <code style="background:var(--bg-main);padding:2px 6px;border-radius:4px;color:var(--pastel-mint);font-size:12px;">
+        InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country
+      </code>
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+      <!-- Drop zone -->
+      <div id="dropZone"
+        style="border:2px dashed var(--border-light);border-radius:14px;padding:40px;
+               text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:20px;"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--pastel-mint)'"
+        ondragleave="this.style.borderColor='var(--border-light)'"
+        ondrop="event.preventDefault();handleDrop(event)">
+        <div style="font-size:36px;margin-bottom:12px;">📂</div>
+        <div style="font-size:14px;color:var(--text-soft);font-weight:600;">
+          Click to browse or drag & drop your CSV here
+        </div>
+        <div id="fileName" style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+          No file selected
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" name="file" accept=".csv"
+             style="display:none;" onchange="showFileName(this)">
+
+      <div style="display:flex;gap:12px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">
+          ⬆ Upload & Replace Dataset
+        </button>
+        <a href="/dashboard" class="btn btn-outline">← Cancel</a>
+      </div>
+    </form>
+
+    <div style="margin-top:20px;padding:14px;background:var(--bg-main);border:1px solid var(--border);
+         border-radius:10px;font-size:12px;color:var(--text-muted);line-height:1.8;">
+      ⚠️ <strong style="color:var(--warn);">Warning:</strong> Uploading a new file will
+      <strong>replace</strong> the existing <code>data/retail.csv</code> and
+      <strong>clear the cache</strong>. The dashboard will reload with the new data.
+    </div>
+  </div>
+</main>
+
+<script>
+  function showFileName(input) {
+    const name = input.files[0] ? input.files[0].name : 'No file selected';
+    document.getElementById('fileName').textContent = name;
+    document.getElementById('dropZone').style.borderColor = 'var(--pastel-mint)';
+  }
+  function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const input = document.getElementById('fileInput');
+    input.files = dt.files;
+    showFileName(input);
+  }
+</script>
+</body>
+</html>

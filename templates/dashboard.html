@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — RetailMIS</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script> -->
+   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> -->
+  <script src="/static/js/chart.umd.min.js"></script>
+
+  <!--
+    DATA INJECTION: Jinja2 renders these JS variables server-side.
+    The browser receives plain numbers/arrays — no parsing needed.
+    Wrap in a <script> BEFORE dashboard.js so functions can use them.
+  -->
+  <script>
+    /* ── Chart data injected by Flask ───────────────── */
+    var ALL_LABELS       = {{ all_labels       | tojson }};
+    var ALL_REVENUES     = {{ all_revenues     | tojson }};
+    var FORECAST_VALS    = {{ forecast_vals    | tojson }};
+    var UPPER_VALS       = {{ upper_vals       | tojson }};
+    var LOWER_VALS       = {{ lower_vals       | tojson }};
+    var PROD_LABELS      = {{ top_product_labels    | tojson }};
+    var PROD_REVENUES    = {{ top_product_revenues  | tojson }};
+    var COUNTRY_LABELS   = {{ country_labels   | tojson }};
+    var COUNTRY_REVENUES = {{ country_revenues | tojson }};
+    var RFM_LABELS       = {{ rfm_labels       | tojson }};
+    var RFM_COUNTS       = {{ rfm_counts       | tojson }};
+    var HEATMAP_DOW      = {{ heatmap_dow      | tojson }};
+    var HEATMAP_MONTH    = {{ heatmap_month    | tojson }};
+  </script>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">📊</div>
+      <div>
+        <div class="logo-text">RetailMIS</div>
+        <div class="logo-sub">Intelligence Hub</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <a href="/dashboard"   class="nav-item active"><span class="nav-icon">📈</span><span>Dashboard</span></a>
+    <a href="/report"      class="nav-item"><span class="nav-icon">📄</span><span>Reports</span></a>
+    {% if role == 'admin' %}
+    <a href="/upload"      class="nav-item"><span class="nav-icon">⬆</span><span>Upload Data</span></a>
+    <a href="/api/refresh" class="nav-item"><span class="nav-icon">↺</span><span>Refresh Cache</span></a>
+    {% endif %}
+    <div class="nav-label" style="margin-top:20px;">Analysis</div>
+    <a href="#revenue"   class="nav-item"><span class="nav-icon">💰</span><span>Revenue</span></a>
+    <a href="#products"  class="nav-item"><span class="nav-icon">📦</span><span>Products</span></a>
+    <a href="#customers" class="nav-item"><span class="nav-icon">👥</span><span>Customers</span></a>
+    <a href="#rfm"       class="nav-item"><span class="nav-icon">🎯</span><span>RFM</span></a>
+    <a href="#basket"    class="nav-item"><span class="nav-icon">🛍</span><span>Basket</span></a>
+    <a href="#seasonal"  class="nav-item"><span class="nav-icon">📅</span><span>Seasonal</span></a>
+    <a href="#nlq"       class="nav-item"><span class="nav-icon">💬</span><span>Ask MIS</span></a>
+  </div>
+  <div class="sidebar-footer">
+    RetailMIS v3.0<br>
+    <span class="status-dot"></span> {{ username }} ({{ role }})<br>
+    <a href="/logout" style="color:var(--pastel-rose);font-size:11px;text-decoration:none;">⎋ Logout</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title">Sales <span>Dashboard</span></div>
+      <div class="page-subtitle">Decision Intelligence · {{ username }} · {{ role|capitalize }}</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="badge-live"><span class="dot-live"></span> Live Data</div>
+      <a href="/api/download/pdf" class="btn btn-primary">⬇ PDF Report</a>
+      <a href="/report" class="btn btn-secondary">📄 Reports</a>
+    </div>
+  </div>
+
+  <!-- DATE FILTER -->
+  <div class="card fade-up" style="margin-bottom:20px;padding:16px 22px;">
+    <form method="GET" action="/dashboard"
+          style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:700;text-transform:uppercase;
+                   letter-spacing:0.8px;color:var(--text-muted);">🗓 Filter by Date</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="font-size:12px;color:var(--text-muted);">From</label>
+        <input type="date" name="date_from" value="{{ date_from }}"
+          style="background:var(--bg-main);border:1px solid var(--border-light);
+                 border-radius:8px;padding:7px 12px;color:var(--text);
+                 font-family:var(--font);font-size:13px;outline:none;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="font-size:12px;color:var(--text-muted);">To</label>
+        <input type="date" name="date_to" value="{{ date_to }}"
+          style="background:var(--bg-main);border:1px solid var(--border-light);
+                 border-radius:8px;padding:7px 12px;color:var(--text);
+                 font-family:var(--font);font-size:13px;outline:none;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:8px 18px;">Apply Filter</button>
+      {% if date_from or date_to %}
+      <a href="/dashboard" class="btn btn-outline" style="padding:8px 14px;">✕ Clear</a>
+      <span style="font-size:12px;color:var(--pastel-mint);">● Filtered view active</span>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    {% set kpis = [
+      ("💷","Total Revenue",    "£"~"{:,.2f}".format(insights.total_revenue),  insights.total_revenue,  "£",True, "up"),
+      ("🛒","Total Orders",     "{:,}".format(insights.total_orders),           insights.total_orders,   "", False,"up"),
+      ("👤","Unique Customers", "{:,}".format(insights.total_customers),        insights.total_customers,"", False,"flat"),
+      ("📦","Products",         "{:,}".format(insights.total_products),         insights.total_products, "", False,"flat"),
+      ("💡","Avg Order Value",  "£"~"{:.2f}".format(insights.avg_order_value), insights.avg_order_value,"£",True, "up"),
+    ] %}
+    {% for icon,label,display,raw,prefix,is_float,trend in kpis %}
+    <div class="kpi-card fade-up">
+      <span class="kpi-icon">{{ icon }}</span>
+      <div class="kpi-value mono" data-count="{{ raw }}" data-prefix="{{ prefix }}"
+           {% if is_float %}data-float="true"{% endif %}>{{ display }}</div>
+      <div class="kpi-label">{{ label }}</div>
+      {% if label == "Total Revenue" %}
+      <div class="kpi-change {{ 'up' if insights.growth_rate > 0 else 'down' }}">
+        {{ '▲' if insights.growth_rate > 0 else '▼' }}
+        {{ insights.growth_rate|abs }}% · {{ insights.trend_label }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ROW 1: Revenue Trend + Country -->
+  <div class="grid-3" id="revenue">
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">Monthly Revenue + Forecast</span>
+        <span class="card-badge {{ 'green' if insights.growth_rate > 0 else 'red' }}">
+          {{ insights.trend_label }}
+        </span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+        R² = <span style="color:var(--pastel-mint);font-family:var(--mono);">{{ forecast.r2 }}</span>
+        &nbsp;·&nbsp;
+        Slope: <span style="color:var(--pastel-lavender);font-family:var(--mono);">
+          £{{ "{:,.0f}".format(forecast.slope) }}/mo
+        </span>
+        &nbsp;·&nbsp; Next 3 months forecasted (dashed)
+      </div>
+      <div style="position:relative;height:270px;">
+        <canvas id="revChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">Revenue by Country</span>
+        <span class="card-badge purple">Top {{ insights.top_countries|length }}</span>
+      </div>
+      <div style="position:relative;height:270px;">
+        <canvas id="countryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Top Products + RFM -->
+  <div class="grid-2" id="products">
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">Top Products by Revenue</span>
+        <span class="card-badge green">Top 8</span>
+      </div>
+      <div style="position:relative;height:300px;">
+        <canvas id="prodChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card fade-up" id="rfm">
+      <div class="card-header">
+        <span class="card-title">Customer Segments (RFM)</span>
+        <span class="card-badge purple">RFM</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="rfmChart"></canvas>
+      </div>
+      <div class="segment-grid mt-4">
+        {% for seg in rfm_summary %}
+        <div class="segment-chip" data-seg="{{ seg.Segment }}">
+          <div class="segment-name">{{ seg.Segment }}</div>
+          <div class="segment-count">{{ seg.Count }}</div>
+          <div class="segment-avg">Avg £{{ "%.0f"|format(seg.AvgMonetary) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Tables -->
+  <div class="grid-2" id="customers">
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">Product Leaderboard</span>
+        <a href="/report" class="btn btn-outline" style="font-size:11px;padding:5px 10px;">View All</a>
+      </div>
+      {% set max_rev = insights.top_products[0].Revenue if insights.top_products else 1 %}
+      <table class="mis-table">
+        <thead><tr><th>#</th><th>Product</th><th>Revenue</th><th>Units</th></tr></thead>
+        <tbody>
+          {% for p in insights.top_products[:8] %}
+          <tr>
+            <td><span class="rank-badge {{ ['gold','silver','bronze','rest','rest','rest','rest','rest'][loop.index0] }}">{{ loop.index }}</span></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.Description }}</td>
+            <td>
+              <div class="revenue-bar-wrap">
+                <span class="mono" style="font-size:12px;">£{{ "{:,.0f}".format(p.Revenue) }}</span>
+                <div class="revenue-bar" data-pct="{{ (p.Revenue / max_rev * 100)|round|int }}" style="width:0;"></div>
+              </div>
+            </td>
+            <td class="mono muted" style="font-size:12px;">{{ "{:,}".format(p.UnitsSold|int) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">Top Customers + Churn Risk</span>
+        <span class="card-badge amber">By Revenue</span>
+      </div>
+      {% set max_crev = insights.top_customers[0].Revenue if insights.top_customers else 1 %}
+      <table class="mis-table">
+        <thead><tr><th>#</th><th>Customer</th><th>Revenue</th><th>Churn</th></tr></thead>
+        <tbody>
+          {% for c in insights.top_customers[:8] %}
+          {% set cl = churn_data | selectattr('CustomerID','equalto',c.CustomerID) | list %}
+          {% set cr = cl[0].churn_risk if cl else 'N/A' %}
+          {% set cp = cl[0].churn_prob if cl else '' %}
+          <tr>
+            <td><span class="rank-badge {{ ['gold','silver','bronze','rest','rest','rest','rest','rest'][loop.index0] }}">{{ loop.index }}</span></td>
+            <td><a href="/customer/{{ c.CustomerID }}" style="color:var(--pastel-mint);text-decoration:none;font-family:var(--mono);font-weight:600;">{{ c.CustomerID }}</a></td>
+            <td>
+              <div class="revenue-bar-wrap">
+                <span class="mono" style="font-size:12px;">£{{ "{:,.0f}".format(c.Revenue) }}</span>
+                <div class="revenue-bar purple-bar" data-pct="{{ (c.Revenue / max_crev * 100)|round|int }}" style="width:0;"></div>
+              </div>
+            </td>
+            <td>
+              {% if cr == 'High' %}<span class="card-badge red">🔴 {{ cp }}%</span>
+              {% elif cr == 'Medium' %}<span class="card-badge amber">🟡 {{ cp }}%</span>
+              {% elif cr == 'Low' %}<span class="card-badge green">🟢 {{ cp }}%</span>
+              {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SEASONAL -->
+  <div class="grid-2" id="seasonal">
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">📅 Revenue by Day of Week</span>
+        <span class="card-badge sky">Seasonal</span>
+      </div>
+      <div style="position:relative;height:240px;">
+        <canvas id="dowChart"></canvas>
+      </div>
+    </div>
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">📅 Revenue by Month</span>
+        <span class="card-badge lavender">Seasonal</span>
+      </div>
+      <div style="position:relative;height:240px;">
+        <canvas id="monthChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET BASKET -->
+  <div class="card fade-up" id="basket">
+    <div class="card-header">
+      <span class="card-title">🛍 Market Basket — Frequently Bought Together</span>
+      <span class="card-badge mint">{{ basket|length }} Pairs</span>
+    </div>
+    {% if basket %}
+    <table class="mis-table">
+      <thead><tr><th>#</th><th>Product A</th><th>Often Bought With</th><th>Support %</th><th>Confidence %</th><th>Lift</th></tr></thead>
+      <tbody>
+        {% for pair in basket %}
+        <tr>
+          <td class="mono muted">{{ loop.index }}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pastel-mint);">{{ pair.antecedent }}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pastel-lavender);">{{ pair.consequent }}</td>
+          <td class="mono">{{ pair.support }}%</td>
+          <td class="mono">{{ pair.confidence }}%</td>
+          <td><span class="card-badge {{ 'green' if pair.lift > 2 else ('amber' if pair.lift > 1 else 'red') }}">{{ pair.lift }}×</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--text-muted);font-size:13px;">No basket pairs found.</p>
+    {% endif %}
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="card fade-up">
+    <div class="card-header">
+      <span class="card-title">💡 AI-Powered Recommendations</span>
+      <span class="card-badge green">{{ recommendations|length }} Insights</span>
+    </div>
+    <div class="rec-list">
+      {% for rec in recommendations %}
+      <div class="rec-item">
+        <div class="rec-icon-wrap">{{ rec.icon }}</div>
+        <div class="rec-content">
+          <div class="rec-category">{{ rec.category }}</div>
+          <div class="rec-title">{{ rec.title }}</div>
+          <div class="rec-detail">{{ rec.detail }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- NLQ -->
+  <div class="card fade-up" id="nlq" style="margin-bottom:40px;">
+    <div class="card-header">
+      <span class="card-title">💬 Ask the MIS — Natural Language Query</span>
+      <span class="card-badge mint">AI Assistant</span>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+      Ask in plain English — e.g. <em>"What was the revenue in November?"</em>,
+      <em>"Who is the top customer?"</em>, <em>"What is the best-selling product?"</em>
+    </p>
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <input type="text" id="nlqInput"
+        placeholder="Type your question and press Enter or click Ask →"
+        style="flex:1;background:var(--bg-main);border:1px solid var(--border-light);
+               border-radius:10px;padding:11px 16px;color:var(--text);
+               font-family:var(--font);font-size:14px;outline:none;"
+        onfocus="this.style.borderColor='var(--pastel-mint)'"
+        onblur="this.style.borderColor='var(--border-light)'"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();askNLQ();}">
+      <button class="btn btn-primary" onclick="askNLQ()" id="nlqBtn">Ask →</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      {% for q in ["What is total revenue?","Who is the top customer?","What is the best product?","What is the sales trend?","How many customers?","Which country has highest revenue?"] %}
+      <button onclick="setAndAsk('{{ q }}')"
+        style="font-size:11px;padding:5px 12px;border-radius:20px;
+               border:1px solid var(--border-light);background:var(--bg-main);
+               color:var(--text-muted);cursor:pointer;font-family:var(--font);transition:all 0.2s;"
+        onmouseover="this.style.borderColor='var(--pastel-mint)';this.style.color='var(--pastel-mint)'"
+        onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-muted)'">
+        {{ q }}
+      </button>
+      {% endfor %}
+    </div>
+    <div id="nlqLoader" style="display:none;color:var(--text-muted);font-size:13px;padding:8px 0;">⏳ Analysing…</div>
+    <div id="nlqAnswer" style="display:none;padding:16px;background:var(--bg-main);
+         border:1px solid var(--border-light);border-radius:12px;font-size:14px;
+         color:var(--text);line-height:1.7;"></div>
+  </div>
+
+</main>
+
+<!-- dashboard.js loaded AFTER the page so canvases exist in DOM -->
+<script src="/static/js/dashboard.js"></script>
+<script>
+  // ✅ DEBUG: check what data is coming from Flask
+  console.log("ALL_LABELS:", ALL_LABELS);
+  console.log("ALL_REVENUES:", ALL_REVENUES);
+  console.log("FORECAST_VALS:", FORECAST_VALS);
+  console.log("UPPER_VALS:", UPPER_VALS);
+  console.log("LOWER_VALS:", LOWER_VALS);
+  console.log("PROD_LABELS:", PROD_LABELS);
+  console.log("PROD_REVENUES:", PROD_REVENUES);
+  // Draw all charts using the variables injected in <head>
+  drawRevenueTrend(ALL_LABELS, ALL_REVENUES, FORECAST_VALS, UPPER_VALS, LOWER_VALS);
+  drawProducts([].concat(PROD_LABELS).reverse(), [].concat(PROD_REVENUES).reverse());
+  drawCountries(COUNTRY_LABELS, COUNTRY_REVENUES);
+  drawRFM(RFM_LABELS, RFM_COUNTS);
+  drawHeatmap(HEATMAP_DOW, HEATMAP_MONTH);
+
+  function setAndAsk(q) {
+    document.getElementById('nlqInput').value = q;
+    askNLQ();
+  }
+
+  async function askNLQ() {
+    var input  = document.getElementById('nlqInput');
+    var answer = document.getElementById('nlqAnswer');
+    var loader = document.getElementById('nlqLoader');
+    var btn    = document.getElementById('nlqBtn');
+    var q = input.value.trim();
+    if (!q) return;
+
+    answer.style.display = 'none';
+    loader.style.display = 'block';
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+      var res = await fetch('/api/nlq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      });
+      var data = await res.json();
+      loader.style.display = 'none';
+      answer.style.display = 'block';
+      answer.innerHTML = (data.answer || 'No answer.')
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--pastel-mint)">$1</strong>')
+        .replace(/\*(.*?)\*/g,   '<em style="color:var(--pastel-lavender)">$1</em>');
+    } catch(err) {
+      loader.style.display = 'none';
+      answer.style.display = 'block';
+      answer.innerHTML = '<span style="color:var(--pastel-rose);">⚠ ' + err.message + '</span>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Ask →';
+    }
+  }
+</script>
+
+</body>
+</html>

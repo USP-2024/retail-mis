@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — RetailMIS</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <style>
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 24px;
+      padding: 48px 44px;
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .login-logo {
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, var(--pastel-mint), var(--pastel-lavender));
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 30px rgba(168,240,222,0.2);
+    }
+    .login-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+    .login-title span {
+      background: linear-gradient(90deg, var(--pastel-mint), var(--pastel-lavender));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .login-sub {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+    }
+    .form-input {
+      width: 100%;
+      background: var(--bg-main);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--pastel-mint); }
+    .form-input::placeholder { color: var(--text-muted); }
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--pastel-mint), var(--pastel-sky));
+      border: none;
+      border-radius: 11px;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      color: #051020;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+    .btn-login:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(168,240,222,0.22); }
+    .credentials-hint {
+      margin-top: 24px;
+      padding: 14px;
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.9;
+    }
+    .credentials-hint strong { color: var(--pastel-mint); }
+    .flash-msg {
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      font-weight: 500;
+    }
+    .flash-danger  { background: rgba(255,184,184,0.12); border: 1px solid rgba(255,184,184,0.25); color: var(--pastel-rose); }
+    .flash-success { background: rgba(184,240,192,0.12); border: 1px solid rgba(184,240,192,0.25); color: var(--pastel-sage); }
+    .flash-warning { background: rgba(255,212,154,0.12); border: 1px solid rgba(255,212,154,0.25); color: var(--warn); }
+    .flash-info    { background: rgba(168,216,240,0.12); border: 1px solid rgba(168,216,240,0.25); color: var(--pastel-sky); }
+  </style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="login-wrap">
+  <div class="login-card fade-up">
+    <div class="login-logo">📊</div>
+    <div class="login-title">Retail<span>MIS</span></div>
+    <div class="login-sub">Decision Support Management Information System</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-input"
+               placeholder="Enter your username" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-input"
+               placeholder="Enter your password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-login">Sign In →</button>
+    </form>
+
+    <div class="credentials-hint">
+      <strong>Demo Credentials</strong><br>
+      Admin: &nbsp; <strong>admin</strong> / admin123<br>
+      Manager: <strong>manager</strong> / manager123
+    </div>
+  </div>
+</div>
+</body>
+</html>
