@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — RetailMIS</title>
   <link rel="stylesheet" href="/static/css/styles.css">
-  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script> -->
-   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> -->
-  <script src="/static/js/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <!--
     DATA INJECTION: Jinja2 renders these JS variables server-side.
@@ -244,9 +242,9 @@
         <thead><tr><th>#</th><th>Customer</th><th>Revenue</th><th>Churn</th></tr></thead>
         <tbody>
           {% for c in insights.top_customers[:8] %}
-          {% set cl = churn_data | selectattr('CustomerID','equalto',c.CustomerID) | list %}
-          {% set cr = cl[0].churn_risk if cl else 'N/A' %}
-          {% set cp = cl[0].churn_prob if cl else '' %}
+          {% set churn_row = churn_lookup.get(c.CustomerID|string, {}) %}
+          {% set cr = churn_row.get('churn_risk', 'N/A') %}
+          {% set cp = churn_row.get('churn_prob', '') %}
           <tr>
             <td><span class="rank-badge {{ ['gold','silver','bronze','rest','rest','rest','rest','rest'][loop.index0] }}">{{ loop.index }}</span></td>
             <td><a href="/customer/{{ c.CustomerID }}" style="color:var(--pastel-mint);text-decoration:none;font-family:var(--mono);font-weight:600;">{{ c.CustomerID }}</a></td>
@@ -382,14 +380,6 @@
 <!-- dashboard.js loaded AFTER the page so canvases exist in DOM -->
 <script src="/static/js/dashboard.js"></script>
 <script>
-  // ✅ DEBUG: check what data is coming from Flask
-  console.log("ALL_LABELS:", ALL_LABELS);
-  console.log("ALL_REVENUES:", ALL_REVENUES);
-  console.log("FORECAST_VALS:", FORECAST_VALS);
-  console.log("UPPER_VALS:", UPPER_VALS);
-  console.log("LOWER_VALS:", LOWER_VALS);
-  console.log("PROD_LABELS:", PROD_LABELS);
-  console.log("PROD_REVENUES:", PROD_REVENUES);
   // Draw all charts using the variables injected in <head>
   drawRevenueTrend(ALL_LABELS, ALL_REVENUES, FORECAST_VALS, UPPER_VALS, LOWER_VALS);
   drawProducts([].concat(PROD_LABELS).reverse(), [].concat(PROD_REVENUES).reverse());

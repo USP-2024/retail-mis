@@ -23,3 +23,10 @@ uploads/
 
 # Cache
 .cache/
+
+# Generated charts and reports (recreated at runtime)
+static/charts/
+static/reports/
+
+# Dataset (too large)
+data/retail.csv
